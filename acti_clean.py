@@ -1,13 +1,14 @@
 import csv
-import os
+from tkinter import filedialog
+
 # Remove rows where NaN exists in active or daily
     # what about rows where daily or active has NaN, from 'date' on, currently these are deleted
 # Replace all of the NaN’s with blank cells
 # Remove where %invalid is greater than 50 (?)
 # For sleep intervals, copy and paste row data (?)
 
-file_path = 'C:\\Users\\a\\Desktop\\CES_07302018.csv'
-new_file_path = 'C:\\Users\\a\\Desktop\\test_CES_07302018.csv'
+# file_path = 'C:\\Users\\a\\Desktop\\CES_07302018.csv'
+# new_file_path = 'C:\\Users\\a\\Desktop\\test_CES_07302018.csv'
 interval_type_col = 4
 onset_latency_col = 22
 percent_invalid_sw_col = 21
@@ -15,6 +16,11 @@ active_interval = 'ACTIVE'
 daily_interval = 'DAILY'
 excluded_interval = 'EXCLUDED'
 count = 0
+
+
+def get_file_location_from_user_selection():
+    filename = filedialog.askopenfilename(filetypes=[(".csv", ".csv")])
+    return filename
 
 
 def list_string_equals(string_list, index_to_check, string_to_check_for):
@@ -34,14 +40,17 @@ def replace_string_in_list(string_list, string_to_replace, string_to_insert):
     return r
 
 
+file_path = get_file_location_from_user_selection()
+new_file_path = file_path.replace(".csv", "_clean.csv")
 with open(file_path, 'r', encoding='utf-8-sig') as csv_file:
     csv_reader = csv.reader(csv_file)
     with open(new_file_path, 'w', encoding='utf-8-sig', newline='') as new_csv:
         csv_writer = csv.writer(new_csv)
-
+        print('test')
         for row in csv_reader:
             print(count)
             print(row)
+            print('test2')
             if count <= 0:
                 csv_writer.writerow(row)
             # exclude rows that have NaN for active interval or daily interval at onset_latency_col
