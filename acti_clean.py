@@ -169,10 +169,3 @@ def get_removed_rows_csv(file_path):
 file_path = get_file_location_from_user_selection()
 clean_actigraphy_csv(file_path)
 get_removed_rows_csv(file_path)
-
-
-
-
-
-
-
