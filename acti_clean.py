@@ -20,6 +20,8 @@ interval_num_col = 5
 active_interval = 'ACTIVE'
 daily_interval = 'DAILY'
 excluded_interval = 'EXCLUDED'
+rest_interval = 'REST'
+sleep_interval = 'SLEEP'
 count = 0
 
 
@@ -90,6 +92,19 @@ def meets_valid_sleep_wake_criteria(cur):
         return True
 
 
+def row_is_rest_interval(cur):
+    if list_string_equals(cur, interval_type_col, rest_interval):
+        return True
+    else:
+        return False
+
+
+def row_is_sleep_interval(cur):
+    if list_string_equals(cur, interval_type_col, sleep_interval):
+        return True
+    else:
+        return False
+
 def row_should_be_written(cur, next_up):
     if list_string_equals(cur, interval_type_col, active_interval) or \
             list_string_equals(cur, interval_type_col, daily_interval):
@@ -114,58 +129,62 @@ def last_row_should_be_written(cur):
     return True
 
 
+def sleep_interval_should_be_included(cur, rest_list):
+
+
 def clean_actigraphy_csv(file_path):
     count = 0
     new_file_path = file_path.replace(".csv", "_clean.csv")
+    removed_path = file_path.replace(".csv", "_removed.csv")
     with open(file_path, 'r', encoding='utf-8-sig') as csv_file:
         csv_reader = csv.reader(csv_file)
         with open(new_file_path, 'w', encoding='utf-8-sig', newline='') as new_csv:
-            csv_writer = csv.writer(new_csv)
-            cur = next(csv_reader)
-            for row in csv_reader:
-                next_up = row
-                # write first row
-                if count <= 0:
-                    csv_writer.writerow(cur)
+            with open(removed_path, 'w', encoding='utf-8-sig', newline='') as removed_csv:
+                rest_interval_sequence = list()
+                rest_interval_rows_to_remove = list()
+                csv_writer = csv.writer(new_csv)
+                csv_removed_writer = csv.writer(removed_csv)
+                cur = next(csv_reader)
+                for row in csv_reader:
+                    next_up = row
+                    # write first row
+                    if count <= 0:
+                        csv_writer.writerow(cur)
+                        csv_removed_writer.writerow(cur)
 
-                elif row_should_be_written(cur, next_up):
+                    if row_is_rest_interval(cur):
+                        if is_first_in_series(cur):
+                            rest_interval_sequence.clear()
+                        rest_interval_sequence.append(cur)
+
+
+                    # currently working on
+                    if row_is_sleep_interval(cur):
+                        if not has_start_date(cur):
+                            if has_matching_interval(cur, rest_interval_sequence):
+                                matching_rest_interval = get_matching_interval(cur, rest_interval_sequence)
+                                if has_start_date(matching_rest_interval):
+                                   cur_with_rest_data = add_rest_data(cur, matching_rest_interval)
+                                    write_row_without_nan(cur_with_rest_data)
+                                else:
+                                    rest_interval_rows_to_remove.append(matching_rest_interval)
+                                    csv_removed_writer.writerow(cur)
+                                ##don't forget to remove rest interval rows and add those to deleted csv
+
+                    if row_should_be_written(cur, next_up):
+                        write_row_without_nan(csv_writer, cur)
+                    else:
+                        csv_removed_writer.writerow(cur)
+
+                    cur = next_up
+                    count += 1
+
+                # write last row
+                if last_row_should_be_written(cur):
                     write_row_without_nan(csv_writer, cur)
-                    print(cur)
-
-                cur = next_up
-                count = count + 1
-
-            # write last row
-            if last_row_should_be_written(cur):
-                write_row_without_nan(csv_writer, cur)
-
-
-def get_removed_rows_csv(file_path):
-    count = 0
-    new_file_path = file_path.replace(".csv", "_removed.csv")
-    with open(file_path, 'r', encoding='utf-8-sig') as csv_file:
-        csv_reader = csv.reader(csv_file)
-        with open(new_file_path, 'w', encoding='utf-8-sig', newline='') as new_csv:
-            csv_writer = csv.writer(new_csv)
-            cur = next(csv_reader)
-            for row in csv_reader:
-                next_up = row
-                # write first row
-                if count <= 0:
-                    csv_writer.writerow(cur)
-
-                elif not row_should_be_written(cur, next_up):
-                    csv_writer.writerow(cur)
-                    print(cur)
-
-                cur = next_up
-                count = count + 1
-
-            # write last row
-            if not last_row_should_be_written(cur):
-                csv_writer.writerow(cur)
+                else:
+                    csv_removed_writer.writerow(cur)
 
 
 file_path = get_file_location_from_user_selection()
 clean_actigraphy_csv(file_path)
-get_removed_rows_csv(file_path)
